@@ -6,3 +6,7 @@ compatibility_date = "2024-07-25"
 [[kv_namespaces]]
 binding = "authTokens"
 id = "ad5842663ef846aeaf0ba8d85c207273"
+
+[vars]
+LOCAL = false
+

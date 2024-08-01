@@ -6,6 +6,6 @@ import main from './handler'
 
 const handleRequest = main(kv, google, env, crypo)
 
-addEventListener('fetch', (event) => {
+addEventListener('fetch', (event: FetchEvent) => {
   event.respondWith(handleRequest(event))
 })

@@ -8,39 +8,39 @@ We'll be developing this app that lists, based on a query, the files in that use
 ![Result — Design is my passion](./docs/result.png)
 
 ## One picture summary
-![Sequence of requests](./docs/sequence_of_requests.svg)
+![Sequence of requests](./docs/OAuth-worker.svg)
 
 <details>
   <summary>Generated with <a href="https://sequencediagram.org/" target="_blank" rel="noopener noreferrer">sequencediagram.org</a></summary>
-  <pre><code>title Sequence of requests
+  <pre><code>title Sequence of OAuth2 requests
 
-Client->Cloudflare Worker: GET /
-note left of Cloudflare Worker: The client is unauthenticated
-Cloudflare Worker-->Client: Redirect to Google Sign in
-Client->Google API: Ask for permission
-Google API-->Client: Prompt to sign in
-Client->Google API: Grant permissions
+User Browser->Cloudflare Worker: GET /
+note left of Cloudflare Worker: The request is unauthenticated
+Cloudflare Worker-->User Browser: Redirect to Google Sign in
+User Browser->Google API: Ask for permission
+Google API-->User Browser: Prompt to sign in
+User Browser->Google API: Grant permissions
 activate Google API
 note left of Google API: Google now\nhas a session\nfor the user
-Google API-->Client: Go back to the Cloudflare Worker with a `token`
-Client->Cloudflare Worker: GET /auth with a `code`
+Google API-->User Browser: Go back to the Cloudflare Worker with a `token`
+User Browser->Cloudflare Worker: GET /auth with a `code`
 Cloudflare Worker->Google API: Exchange `code` for a `token`
 Google API-->Cloudflare Worker: a token
 activate Cloudflare Worker
 note left of Cloudflare Worker: An auth is stored in the KV with the code
-Cloudflare Worker-->Client: Go back to the original request with the auth cookie
-Client->Cloudflare Worker: GET /
+Cloudflare Worker-->User Browser: Go back to the original request with the auth cookie
+User Browser->Cloudflare Worker: GET /
 note left of Cloudflare Worker: Now the client is autenticated
 Cloudflare Worker->Google API: Get files
 Google API-->Cloudflare Worker: A list of files
-Cloudflare Worker-->Client: An HTML with a list of files
+Cloudflare Worker-->User Browser: An HTML with a list of files
 expandable− logout
-Client->Cloudflare Worker: GET /logout
+User Browser->Cloudflare Worker: GET /logout
 Cloudflare Worker->Google API: Logout
 deactivate Google API
 Google API-->Cloudflare Worker: OK
 deactivate Cloudflare Worker
-Cloudflare Worker-->Client: OK
+Cloudflare Worker-->User Browser: OK
 end
   </code></pre>
 </details>

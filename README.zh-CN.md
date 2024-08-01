@@ -13,21 +13,65 @@ OAuth 2.0 是一种授权框架，允许第三方应用在资源所有者的许�
 > The OAuth 2.0 authorization framework enables a third-partyapplication to obtain limited access to an HTTP service, either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service, or by allowing the third-party application to obtain access on its own behalf.
 
 
+<details>
+  <summary>Sequence Disgram  of OAuth2 requests </summary>
+  
+  ![Sequence of requests](./docs/OAuth-worker.svg)
+  
+</details>
+<details>
+  <summary>Generated with <a href="https://sequencediagram.org/" target="_blank" rel="noopener noreferrer">sequencediagram.org</a></summary>
+  <pre><code>title Sequence of OAuth2 requests
+
+User Browser->Cloudflare Worker: GET /
+note left of Cloudflare Worker: The request is unauthenticated
+Cloudflare Worker-->User Browser: Redirect to Google Sign in
+User Browser->Google API: Ask for permission
+Google API-->User Browser: Prompt to sign in
+User Browser->Google API: Grant permissions
+activate Google API
+note left of Google API: Google now\nhas a session\nfor the user
+Google API-->User Browser: Go back to the Cloudflare Worker with a `token`
+User Browser->Cloudflare Worker: GET /auth with a `code`
+Cloudflare Worker->Google API: Exchange `code` for a `token`
+Google API-->Cloudflare Worker: a token
+activate Cloudflare Worker
+note left of Cloudflare Worker: An auth is stored in the KV with the code
+Cloudflare Worker-->User Browser: Go back to the original request with the auth cookie
+User Browser->Cloudflare Worker: GET /
+note left of Cloudflare Worker: Now the client is autenticated
+Cloudflare Worker->Google API: Get files
+Google API-->Cloudflare Worker: A list of files
+Cloudflare Worker-->User Browser: An HTML with a list of files
+expandable− logout
+User Browser->Cloudflare Worker: GET /logout
+Cloudflare Worker->Google API: Logout
+deactivate Google API
+Google API-->Cloudflare Worker: OK
+deactivate Cloudflare Worker
+Cloudflare Worker-->User Browser: OK
+end
+  </code></pre>
+</details>
+
+A more detail explanation of how Google Sign in should behave can be found in Google's docs: [Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server).
+
+
 **核心概念**
 
 1. **授权服务器（Authorization Server）**：
    - 负责验证资源所有者的身份，并颁发访问令牌（Access Token）给客户端应用。
      > 在本项目中由 Google Cloud 的相应API endpoints 来提供 OAuth2 业务流程中的授权服务。（待完善）
 
-1. **资源服务器（Resource Server）**：
+2. **资源服务器（Resource Server）**：
    - 托管资源的服务器，使用访问令牌来决定是否允许客户端访问受保护资源。
      > 在本项目中由 Google APIs 的相应API endpoints 来提供对应的资源访问服务。（待完善）
 
-2. **客户端（Client）**：
+3. **客户端（Client）**：
    - 请求访问受保护资源的第三方应用。它代表资源所有者操作，但并不代表资源所有者的身份。
      > 本项目利用Workers
 
-1. **资源所有者（Resource Owner）**：
+4. **资源所有者（Resource Owner）**：
    - 拥有受保护资源的实体，通常是最终用户。
 
 
@@ -35,6 +79,8 @@ OAuth 2.0 是一种授权框架，允许第三方应用在资源所有者的许�
 - [RFC 6749: The OAuth 2.0 Authorization Framework ](https://datatracker.ietf.org/doc/html/rfc6749) 
 
 - [Using OAuth 2.0 to Access Google APIs](https://developers.google.com/identity/protocols/oauth2)
+
+- [Setting up OAuth 2.0](https://support.google.com/cloud/answer/6158849) on Google Cloud
 
 ## Prerequisites
 ### nodejs
@@ -70,6 +116,12 @@ conda install -c conda-forge nodejs=20
 ### wrangler
 `wrangler` 是一个用于管理和部署 Cloudflare Workers 的命令行工具。它能快速初始化新项目、本地开发和调试、部署 Workers 到 Cloudflare 边缘网络。`wrangler` 使用 `wrangler.toml` 文件管理配置，支持 Workers KV 存储的创建和管理，并提供实时日志查看功能。通过 `wrangler`，开发者可以高效地在 Cloudflare 上开发、调试和部署代码，极大地简化了操作流程。
 
+
+
+<details>
+
+<summary> <b> wrangler 安装以及配置 </b> </summary>
+
 - wrangler 安装，请在项目目录当中执行
 ```bash
 npm install wrangler --save-dev
@@ -85,10 +137,76 @@ main = "src/index.ts"
 compatibility_date = "2024-07-25"
 ```
 
+</details>
+
+
+### Google Cloud
+- A Google Services account
+  
+- A Google OAuth Client ID and Secret, from the [Credentials](https://console.cloud.google.com/apis/credentials) > + Create credentials > Oauh client ID. > Application: Web application
+  - 注意: "Authorized redirect URIs"
+    - 本地开发时可使用 `http://127.0.0.1:8787/auth`
+    - 生产环境时应使用 `[your cloudflare worker url]/auth` 
+  - 完成设置后需要需要记录生成的 `Client ID` 和 `Client secret`
 
 
 
+## 部署
+### 本地开发环境
+1. 创建项目
+  可以使用 Cloudflare 提供的交互命令行工具 C3 (create-cloudflare-cli) 进行项目创建.
+    ```
+    npm create cloudflare
+    ```
+    交互过程中选择 Worker built from a template hosted in a git repository, 然后使用 `https://github.com/crazynomad/cloudflare-worker-google-oauth`
+1. wrangler 配置
+  建议 wrangler.toml 配置， `name` 是 worker 的名称，可自行更改
+    ```
+    name = "oauth-client"
+    main = "src/index.ts"
+    compatibility_date = "2024-07-25"
+    ```
+1. 环境变量是指
+使用 wrangler 设置[上文生成 OAuth Client ID 和 Client secret](###Google-Cloud):
+   `npx wrangler secret put CLIENT_ID`
+   `npx wrangler secret put CLIENT_SECRET`
 
+1. 设置Cloudflare 缓存(KV)
+  创建 `KV` namespace: `npx wrangler kv namespace create "OAuthTokens"` 并根据返回值在 `wrangler.toml` 文件中追加对应配置， 例如
+    ```
+    [[kv_namespaces]]
+    binding = "OAuthTokens"
+    id = "cac2199813c246679f58a34ef915e138"
+
+    [vars]
+    LOCAL = true
+    ```
+
+1. 本地环境变量
+  创建一个 `.dev.vars` 的文件，其中添加
+    ```
+    LOCAL = true
+    CLIENT_ID = "<Replace With your CLIENT ID>"
+    CLIENT_SECRET = "<Replace With your CLIENT SECRET>"
+    ```
+    了解更多环境变量相关内容
+    - [Environment variables](https://developers.cloudflare.com/workers/configuration/environment-variables/)
+    - [System environment variables](https://developers.cloudflare.com/workers/wrangler/system-environment-variables/)
+1. 启动
+  `npx wrangler dev`
+  然后访问 http://127.0.0.1:8787 ， 应该可以自动被引导进入 OAuth 授权流程。
+1. DONE ！！！
+
+### 线上部署
+1. 部署至线上环境
+   `npx wrangler deploy`
+2. 登陆 Cloudflare Dashboard, 在 Workers & Pages 下面找到你的 Worker, 复制其外部访问的 `Worker URL` 
+3. 编辑之前在 Google Cloud 的 生成的 OAuth 2.0 Client ID, 追加一个 `Authorized redirect URI`, 填入你的 [`Worker URL`/auth]
+4. 在浏览器中访问 `Worker URL`， 应该可以自动被引导进入和本地开发环境相同的 OAuth 授权流程。
+5. Success ！！！
+
+## 待改善
+目前 `@cloudflare/workers-types` 使用的版本较低， 如果提升到 v4 则 VS Code 会在 ts文件中报错， 需要进行优化。
 
 ## Ideas to grow this project
 If you would like to use this setups as a starting point to develop interesting things; I recommend trying out one (or all!) of this improvements:
