@@ -167,7 +167,7 @@ compatibility_date = "2024-07-25"
     compatibility_date = "2024-07-25"
     ```
 1. 环境变量是指
-使用 wrangler 设置[上文生成 OAuth Client ID 和 Client secret](###Google-Cloud):
+使用 wrangler 设置[上文生成 OAuth Client ID 和 Client secret](#google-cloud):
    `npx wrangler secret put CLIENT_ID`
    `npx wrangler secret put CLIENT_SECRET`
 
