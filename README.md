@@ -2,6 +2,8 @@
 
 This project is a **client application in the OAuth2 protocol** implemented using Cloudflare's serverless architecture (Workers). The authorization server and resource server in OAuth2 are provided by Google Cloud. This project forks from [jazcarate/cloudflare-worker-google-oauth](https://github.com/jazcarate/cloudflare-worker-google-oauth), with improvements to the project documentation and updates for Cloudflare Workers v3 CLI tools (Wrangler, C3).
 
+**English** · [简体中文](./README.zh-CN.md) 
+
 #### About Cloudflare Workers
 
 Cloudflare Workers is a serverless computing platform that allows developers to run JavaScript code on Cloudflare's globally distributed network, enabling fast, scalable, and high-performance applications and functionalities. You need to register a Cloudflare account to use Workers. The free plan supports 100,000 requests per day, with up to 10 ms of CPU time per request. According to Cloudflare's [2024 billing model](https://blog.cloudflare.com/workers-pricing-scale-to-zero/), I/O wait time is excluded, allowing most I/O-intensive web applications to run smoothly on the free plan.
