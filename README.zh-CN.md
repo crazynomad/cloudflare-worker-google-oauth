@@ -1,5 +1,5 @@
-## An OAuth client for Google APIs on Cloudflare Workers
-本项目是一个利用 Cloudflare 提供的 Workers 无服务器架构（Serverless）实现的 **OAuth2 协议中的客户端（Client）应用**， OAuth2 中对应的授权服务器和资源服务器由 Google Cloud 进行提供。
+# ( ◕◡◕)っ Cloudflare Workers Google OAuth
+本项目是一个利用 Cloudflare 提供的 Workers 无服务器架构（Serverless）实现的 **OAuth2 协议中的客户端（Client）应用**， OAuth2 中对应的授权服务器和资源服务器由 Google Cloud 进行提供。本项目fork [jazcarate/cloudflare-worker-google-oauth](https://github.com/jazcarate/cloudflare-worker-google-oauth) 并对项目文档细节进行了补充并Cloudflare Workers v3 版本的 CLI （Wrangler, C3）工具进行改进， 
 
 #### About Cloudflare Workers
 Cloudflare Workers 是一种无服务器计算平台，允许开发者在全球分布的 Cloudflare 网络上运行 JavaScript 代码，从而实现快速、可扩展和高性能的应用和功能。需要注册一个 Cloudflare account 来使用 Workers, Workers 免费规格(Free Plan) 的 Workers 每日可支持 100,000 请求响应，每个请求响应消耗的的 CPU 时间可达10 ms。Cloudflare 【2024年公布的计费模型](https://blog.cloudflare.com/workers-pricing-scale-to-zero/)中排除了 I/O 等待的耗时， 使得多数I/O密集Web应用可以在免费规格上顺利的运行。
@@ -12,6 +12,22 @@ OAuth 2.0 是一种授权框架，允许第三方应用在资源所有者的许�
 
 > The OAuth 2.0 authorization framework enables a third-partyapplication to obtain limited access to an HTTP service, either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service, or by allowing the third-party application to obtain access on its own behalf.
 
+**名词解释**
+
+1. **授权服务器（Authorization Server）**：
+   - 负责验证资源所有者的身份，并颁发访问令牌（Access Token）给客户端应用。
+     > 在本项目中由 Google Cloud 的相应API endpoints 来提供 OAuth2 业务流程中的授权服务。（待完善）
+
+2. **资源服务器（Resource Server）**：
+   - 托管资源的服务器，使用访问令牌来决定是否允许客户端访问受保护资源。
+     > 在本项目中由 Google APIs 的相应API endpoints 来提供对应的资源访问服务。（待完善）
+
+3. **客户端（Client）**：
+   - 请求访问受保护资源的第三方应用。它代表资源所有者操作，但并不代表资源所有者的身份。
+     > 本项目利用Workers
+
+4. **资源所有者（Resource Owner）**：
+   - 拥有受保护资源的实体，通常是最终用户。
 
 <details>
   <summary>Sequence Disgram  of OAuth2 requests </summary>
@@ -19,6 +35,7 @@ OAuth 2.0 是一种授权框架，允许第三方应用在资源所有者的许�
   ![Sequence of requests](./docs/OAuth-worker.svg)
   
 </details>
+
 <details>
   <summary>Generated with <a href="https://sequencediagram.org/" target="_blank" rel="noopener noreferrer">sequencediagram.org</a></summary>
   <pre><code>title Sequence of OAuth2 requests
@@ -54,28 +71,9 @@ end
   </code></pre>
 </details>
 
-A more detail explanation of how Google Sign in should behave can be found in Google's docs: [Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server).
-
-
-**核心概念**
-
-1. **授权服务器（Authorization Server）**：
-   - 负责验证资源所有者的身份，并颁发访问令牌（Access Token）给客户端应用。
-     > 在本项目中由 Google Cloud 的相应API endpoints 来提供 OAuth2 业务流程中的授权服务。（待完善）
-
-2. **资源服务器（Resource Server）**：
-   - 托管资源的服务器，使用访问令牌来决定是否允许客户端访问受保护资源。
-     > 在本项目中由 Google APIs 的相应API endpoints 来提供对应的资源访问服务。（待完善）
-
-3. **客户端（Client）**：
-   - 请求访问受保护资源的第三方应用。它代表资源所有者操作，但并不代表资源所有者的身份。
-     > 本项目利用Workers
-
-4. **资源所有者（Resource Owner）**：
-   - 拥有受保护资源的实体，通常是最终用户。
-
-
 **相关阅读**
+ - [Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server).
+
 - [RFC 6749: The OAuth 2.0 Authorization Framework ](https://datatracker.ietf.org/doc/html/rfc6749) 
 
 - [Using OAuth 2.0 to Access Google APIs](https://developers.google.com/identity/protocols/oauth2)
@@ -84,7 +82,7 @@ A more detail explanation of how Google Sign in should behave can be found in Go
 
 ## Prerequisites
 ### nodejs
-- 为了避免版本冲突建议通过 conda 进行 nodejs 环境安装, 本项目使用 2024-07 的 LTS 版本 v20.16.0 
+为了避免版本冲突建议通过 conda 进行 nodejs 环境安装, 本项目使用 2024-07 月间的 LTS 版本 v20.12.0
 如果还没有安装 `conda`，可以从以下链接下载并安装 Miniconda 或 Anaconda：
    - [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
    - [Anaconda](https://www.anaconda.com/products/distribution)
@@ -141,7 +139,7 @@ compatibility_date = "2024-07-25"
 
 
 ### Google Cloud
-- A Google Services account
+- 需要一个 Google Services account
   
 - A Google OAuth Client ID and Secret, from the [Credentials](https://console.cloud.google.com/apis/credentials) > + Create credentials > Oauh client ID. > Application: Web application
   - 注意: "Authorized redirect URIs"
@@ -198,7 +196,7 @@ compatibility_date = "2024-07-25"
 1. DONE ！！！
 
 ### 线上部署
-1. 部署至线上环境
+1. 利用 `wrangler` 工具部署至线上环境
    `npx wrangler deploy`
 2. 登陆 Cloudflare Dashboard, 在 Workers & Pages 下面找到你的 Worker, 复制其外部访问的 `Worker URL` 
 3. 编辑之前在 Google Cloud 的 生成的 OAuth 2.0 Client ID, 追加一个 `Authorized redirect URI`, 填入你的 [`Worker URL`/auth]
