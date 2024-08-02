@@ -165,10 +165,10 @@ Set the [OAuth Client ID and Client secret generated above](#google-cloud) using
    `npx wrangler secret put CLIENT_SECRET`
 
 1. Set up Cloudflare Cache (KV)
-  Create a `KV` namespace: `npx wrangler kv namespace create "OAuthTokens"` and add the corresponding configuration returned to the `wrangler.toml` file, for example
+  Create a `KV` namespace: `npx wrangler kv namespace create "authTokens"` and add the corresponding configuration returned to the `wrangler.toml` file, for example
     ```
     [[kv_namespaces]]
-    binding = "OAuthTokens"
+    binding = "authTokens"
     id = "cac2199813c246679f58a34ef915e138"
 
     [vars]

@@ -172,10 +172,10 @@ compatibility_date = "2024-07-25"
    `npx wrangler secret put CLIENT_SECRET`
 
 1. 设置Cloudflare 缓存(KV)
-  创建 `KV` namespace: `npx wrangler kv namespace create "OAuthTokens"` 并根据返回值在 `wrangler.toml` 文件中追加对应配置， 例如
+  创建 `KV` namespace: `npx wrangler kv namespace create "authTokens"` 并根据返回值在 `wrangler.toml` 文件中追加对应配置， 例如
     ```
     [[kv_namespaces]]
-    binding = "OAuthTokens"
+    binding = "authTokens"
     id = "cac2199813c246679f58a34ef915e138"
 
     [vars]
