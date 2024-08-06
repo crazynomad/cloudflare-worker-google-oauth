@@ -32,7 +32,7 @@ OAuth 2.0 是一种授权框架，允许第三方应用在资源所有者的许�
    - 拥有受保护资源的实体，通常是最终用户。
 
 <details>
-  <summary>Sequence Disgram  of OAuth2 requests </summary>
+  <summary>Sequence Diagram  of OAuth2 requests </summary>
   
   ![Sequence of requests](./docs/OAuth-worker.svg)
   

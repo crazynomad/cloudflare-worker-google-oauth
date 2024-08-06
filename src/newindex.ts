@@ -61,7 +61,6 @@ app.get('/login', async (c) => {
     if (tokenDataJson) {
       const tokenData: TokenData = JSON.parse(tokenDataJson);
       if (tokenData.refresh_token) {
-        // 进行刷新操作
         const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: {
@@ -92,7 +91,7 @@ app.get('/login', async (c) => {
   const clientId = c.env.CLIENT_ID;
   const scope = encodeURIComponent('https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email');
   
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&access_type=offline`;
   
   setCookie(c, 'oauth_state', state, { httpOnly: true, secure: true, sameSite: 'Lax' });
   
