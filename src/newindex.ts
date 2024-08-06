@@ -1,10 +1,8 @@
 import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 
 interface Env {
-  LOCAL: boolean;
   CLIENT_ID: string;
   CLIENT_SECRET: string;
   REDIRECT_URI: string;
@@ -34,7 +32,51 @@ interface UserInfo {
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get('/login', (c) => {
+const fetchUserInfo = async (accessToken: string): Promise<UserInfo> => {
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch user info');
+  }
+  return await response.json();
+};
+
+app.get('/login', async (c) => {
+  const storedState = getCookie(c, 'oauth_state');
+  
+  if (storedState) {
+    const tokenDataJson = await c.env.authTokens.get(storedState);
+    if (tokenDataJson) {
+      const tokenData: TokenData = JSON.parse(tokenDataJson);
+      if (tokenData.refresh_token) {
+        // 进行刷新操作
+        const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+            client_id: c.env.CLIENT_ID,
+            client_secret: c.env.CLIENT_SECRET,
+            refresh_token: tokenData.refresh_token,
+            grant_type: 'refresh_token'
+          })
+        });
+
+        const newTokenData: TokenData = await refreshResponse.json();
+        if (newTokenData.error) {
+          return c.text(`Error: ${newTokenData.error}`, 400);
+        }
+
+        await c.env.authTokens.put(storedState, JSON.stringify(newTokenData), { expirationTtl: newTokenData.expires_in });
+        return c.redirect('/userinfo');
+      }
+    }
+  }
+
   const state = nanoid();
   const redirectUri = encodeURIComponent(c.env.REDIRECT_URI);
   const clientId = c.env.CLIENT_ID;
@@ -51,17 +93,6 @@ app.get('/auth', async (c) => {
   const query = c.req.query();
   const code = decodeURIComponent(query.code as string);
   const state = decodeURIComponent(query.state as string);
-  const scope = decodeURIComponent(query.scope as string);
-  const authuser = decodeURIComponent(query.authuser as string);
-  const prompt = decodeURIComponent(query.prompt as string);
-
-  const queryList = {
-    code,
-    state,
-    scope,
-    authuser,
-    prompt
-  };
   
   const storedState = getCookie(c, 'oauth_state');
   
@@ -71,19 +102,18 @@ app.get('/auth', async (c) => {
 
   let tokenData: TokenData;
   try {
-    const body = new URLSearchParams({
-      code,
-      client_id: c.env.CLIENT_ID,
-      client_secret: c.env.CLIENT_SECRET,
-      redirect_uri: c.env.REDIRECT_URI,
-      grant_type: 'authorization_code'
-    })    
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body
+      body: new URLSearchParams({
+        code: code as string,
+        client_id: c.env.CLIENT_ID,
+        client_secret: c.env.CLIENT_SECRET,
+        redirect_uri: c.env.REDIRECT_URI,
+        grant_type: 'authorization_code'
+      })
     });
     
     tokenData = await tokenResponse.json();
@@ -91,33 +121,100 @@ app.get('/auth', async (c) => {
       return c.text(`Error: ${tokenData.error}`, 400);
     }
   } catch (error) {
-    console.error(error);
     return c.text('Failed to fetch or parse token response', 500);
   }
+
+  await c.env.authTokens.put(storedState, JSON.stringify(tokenData), { expirationTtl: tokenData.expires_in });
+
+  return c.html(`
+    <html>
+      <head>
+        <meta http-equiv="refresh" content="10;url=/userinfo">
+      </head>
+      <body>
+        <h1>Authentication successful</h1>
+        <p>Redirecting to user info in <span id="countdown">10</span> seconds...</p>
+        <script>
+          let countdown = 10;
+          const countdownElement = document.getElementById('countdown');
+          setInterval(() => {
+            countdown--;
+            if (countdownElement) {
+              countdownElement.textContent = countdown.toString();
+            }
+          }, 1000);
+        </script>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/userinfo', async (c) => {
+  const storedState = getCookie(c, 'oauth_state');
+  if (!storedState) {
+    return c.text('Not authenticated', 401);
+  }
+
+  const tokenDataJson = await c.env.authTokens.get(storedState);
+  if (!tokenDataJson) {
+    return c.text('Not authenticated', 401);
+  }
+
+  const tokenData: TokenData = JSON.parse(tokenDataJson);
   
-  let userInfo: UserInfo;
   try {
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    const userInfo = await fetchUserInfo(tokenData.access_token);
+    await c.env.authTokens.put(userInfo.sub, JSON.stringify(userInfo));
+    return c.json(userInfo, {
       headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`
+        'Content-Type': 'application/json'
       }
     });
-    userInfo = await userInfoResponse.json();
   } catch (error) {
     return c.text('Failed to fetch user info', 500);
   }
+});
 
-  await c.env.authTokens.put(userInfo.sub, JSON.stringify(tokenData));
+app.get('/', async (c) => {
+  const storedState = getCookie(c, 'oauth_state');
   
-  return c.json({ userInfo, queryList });
+  if (storedState) {
+    const tokenDataJson = await c.env.authTokens.get(storedState);
+    if (tokenDataJson) {
+      const tokenData: TokenData = JSON.parse(tokenDataJson);
+      
+      try {
+        const userInfo = await fetchUserInfo(tokenData.access_token);
+        
+        return c.html(`
+          <html>
+            <body>
+              <h1>User Info</h1>
+              <pre>${JSON.stringify(userInfo, null, 2)}</pre>
+              <a href="/logout">Logout</a>
+            </body>
+          </html>
+        `);
+      } catch (error) {
+        return c.text('Failed to fetch user info', 500);
+      }
+    }
+  }
+  
+  return c.html(`
+    <html>
+      <body>
+        <h1>Welcome to the OAuth Demo App</h1>
+        <a href="/login">Login with Google</a>
+      </body>
+    </html>
+  `);
 });
 
 app.get('/logout', (c) => {
   deleteCookie(c, 'oauth_state', { path: '/', secure: true, sameSite: 'Lax' });
   return c.redirect('/');
 });
-
-app.get('/', (c) => c.text('Welcome to the OAuth Demo App'));
 
 export default {
   fetch: app.fetch,
