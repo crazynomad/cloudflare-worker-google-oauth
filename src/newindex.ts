@@ -44,6 +44,15 @@ const fetchUserInfo = async (accessToken: string): Promise<UserInfo> => {
   return await response.json();
 };
 
+const revokeToken = async (token: string) => {
+  await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  });
+};
+
 app.get('/login', async (c) => {
   const storedState = getCookie(c, 'oauth_state');
   
@@ -72,6 +81,7 @@ app.get('/login', async (c) => {
         }
 
         await c.env.authTokens.put(storedState, JSON.stringify(newTokenData), { expirationTtl: newTokenData.expires_in });
+        setCookie(c, 'oauth_state', storedState, { httpOnly: true, secure: true, sameSite: 'Lax', maxAge: newTokenData.expires_in });
         return c.redirect('/userinfo');
       }
     }
@@ -164,7 +174,6 @@ app.get('/userinfo', async (c) => {
   
   try {
     const userInfo = await fetchUserInfo(tokenData.access_token);
-    await c.env.authTokens.put(userInfo.sub, JSON.stringify(userInfo));
     return c.json(userInfo, {
       headers: {
         'Content-Type': 'application/json'
@@ -211,7 +220,16 @@ app.get('/', async (c) => {
   `);
 });
 
-app.get('/logout', (c) => {
+app.get('/logout', async (c) => {
+  const storedState = getCookie(c, 'oauth_state');
+  if (storedState) {
+    const tokenDataJson = await c.env.authTokens.get(storedState);
+    if (tokenDataJson) {
+      const tokenData: TokenData = JSON.parse(tokenDataJson);
+      await revokeToken(tokenData.access_token);
+      await c.env.authTokens.delete(storedState);
+    }
+  }
   deleteCookie(c, 'oauth_state', { path: '/', secure: true, sameSite: 'Lax' });
   return c.redirect('/');
 });
