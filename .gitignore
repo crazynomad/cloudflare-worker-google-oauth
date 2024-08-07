@@ -3,4 +3,6 @@ node_modules
 .wrangler/*
 .dev.vars
 .DS_Store
-.vitepress
+.vitepress/*
+docs/.vitepress/*
+!docs/.vitepress/config.mts
