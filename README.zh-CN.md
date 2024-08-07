@@ -105,7 +105,7 @@ Hono 是一个超快速、轻量级的 Web 框架，专为边缘计算环境设�
 
 
 
-## 开发环境准备 Prerequisites
+## 开发环境准备 
 ### nodejs
 为了避免版本冲突建议通过 conda 进行 nodejs 环境安装, 本项目使用 2024-07 月间的 LTS 版本 v20.12.0
 如果还没有安装 `conda`，可以从以下链接下载并安装 Miniconda 或 Anaconda：
