@@ -8,7 +8,7 @@ hero:
   tagline: Step by Step guide to implement Google OAuth in Cloudflare Workers
   actions:
     - theme: brand
-      text: Get Started
+      text: Documentation
       link: /introduction
     - theme: alt
       text: Github
