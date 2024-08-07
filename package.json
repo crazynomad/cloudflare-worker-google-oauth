@@ -43,10 +43,8 @@
     "webpack": "^5.38.1",
     "webpack-cli": "^4.7.0"
   },
-  "dependencies": {
-    "dotenv": "^16.4.5",
+  "dependencies": {    
     "hono": "^4.5.3",
-    "nanoid": "^5.0.7",
-    "node-fetch": "^3.3.2"
+    "nanoid": "^5.0.7"    
   }
 }

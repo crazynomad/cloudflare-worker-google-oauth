@@ -1,5 +1,5 @@
 name = "oauth-client"
-main = "src/newindex.ts"
+main = "src/index.ts"
 compatibility_date = "2024-07-25"
 
 
