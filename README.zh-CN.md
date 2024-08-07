@@ -65,25 +65,12 @@ sequenceDiagram
 ```
 
 
-1. 用户访问OAuth2 Client应用首页 `/` 路由，检查认证状态。
-   **路由**：`/`
-   - 用户请求到达 Worker，检查认证 Cookie。
-   - 如果未认证，显示 `/login` 链接。
-   - 如果认证，利用Token 调用Google Userinfo API。
-2. 用户访问 `/login` 链接，重定向到 Google OAuth2 登录页面。
-   **路由**：`/login`
-   - 用户点击 `/login` 链接，重定向到 Google 的 OAuth2 授权 URL，请求包含 `access_type=offline` 参数。
+1. 用户访问OAuth2 Client应用首页 `/` 路由，检查认证状态。   
+2. 用户访问 `/login` 链接，重定向到 Google OAuth2 登录页面。   
 3. 用户在 Google 登录并授权后，Google 返回授权码。
-4. 授权码通过 `/auth` 路由交换获取令牌，存储并设置 Cookie。
-   **路由**：`/auth`
-   - Worker 接收到授权码后，与 Google API 交换获取访问令牌和刷新令牌。
-   - 存储令牌信息并设置认证 Cookie，然后显示登录成功， 等待10秒后重定向回 `/userinfo`。
-5. 用户再次访问 `/` 或 `/userinfo`，检查并处理认证状态。
-   **路由**：`/userinfo`
-   - 检查认证 Cookie，如果存在有效令牌，则处理用户请求，如获取用户信息。
-6. 用户登出时访问 `/logout`，撤销令牌并清除 Cookie。
-   **路由**：`/logout`
-   - 撤销令牌，删除 KV 中的令牌数据，并清除认证 Cookie。
+4. 授权码通过 `/auth` 路由交换获取令牌，存储并设置 Cookie。   
+5. 用户再次访问 `/` 或 `/userinfo`，检查并处理认证状态。   
+6. 用户登出时访问 `/logout`，撤销令牌并清除 Cookie。   
 
 **相关阅读**
  - [Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server).
@@ -118,7 +105,7 @@ Hono 是一个超快速、轻量级的 Web 框架，专为边缘计算环境设�
 
 
 
-## Prerequisites
+## 开发环境准备 Prerequisites
 ### nodejs
 为了避免版本冲突建议通过 conda 进行 nodejs 环境安装, 本项目使用 2024-07 月间的 LTS 版本 v20.12.0
 如果还没有安装 `conda`，可以从以下链接下载并安装 Miniconda 或 Anaconda：
@@ -185,7 +172,21 @@ compatibility_date = "2024-07-25"
     - 生产环境时应使用 `[your cloudflare worker url]/auth` 
   - 完成设置后需要需要记录生成的 `Client ID` 和 `Client secret`
 
-
+## 具体实现
+1. **路由**：`/` ： 项目首页   
+   - 用户请求到达 Worker，检查认证 Cookie。
+   - 如果未认证，显示 `/login` 链接。
+   - 如果认证，利用Token 调用Google Userinfo API。
+2. **路由**：`/login` ：登录页 
+   - 用户点击 `/login` 链接，重定向到 Google 的 OAuth2 授权 URL，请求包含 `access_type=offline` 参数。
+3. **路由**：`/auth`：授权码交换令牌   
+   - Worker 接收到授权码后，与 Google API 交换获取访问令牌和刷新令牌。
+   - 存储令牌信息并设置认证 Cookie，然后显示登录成功， 等待10秒后重定向回 `/userinfo`。
+4. **路由**：`/userinfo`： 用户信息页   
+   - 检查认证 Cookie，如果存在有效令牌，则处理用户请求，如获取用户信息。
+5. **路由**：`/logout`：撤销令牌并清除 Cookie
+   **路由**：`/logout`
+   - 撤销令牌，删除 KV 中的令牌数据，并清除认证 Cookie。  
 
 ## 部署
 ### 本地开发环境
@@ -204,9 +205,9 @@ compatibility_date = "2024-07-25"
     ```
 1. 环境变量是指
 使用 wrangler 设置[上文生成 OAuth Client ID 和 Client secret](#google-cloud):
-   `npx wrangler secret put CLIENT_ID`
-   `npx wrangler secret put CLIENT_SECRET`
-
+    `npx wrangler secret put CLIENT_ID`
+    `npx wrangler secret put CLIENT_SECRET`
+    `npx wrangler secret put REDIRECT_URI`
 1. 设置Cloudflare 缓存(KV)
   创建 `KV` namespace: `npx wrangler kv namespace create "authTokens"` 并根据返回值在 `wrangler.toml` 文件中追加对应配置， 例如
     ```
@@ -224,6 +225,7 @@ compatibility_date = "2024-07-25"
     LOCAL = true
     CLIENT_ID = "<Replace With your CLIENT ID>"
     CLIENT_SECRET = "<Replace With your CLIENT SECRET>"
+    REDIRECT_URI = "http://127.0.0.1:8787/auth"
     ```
     了解更多环境变量相关内容
     - [Environment variables](https://developers.cloudflare.com/workers/configuration/environment-variables/)
@@ -241,8 +243,9 @@ compatibility_date = "2024-07-25"
 4. 在浏览器中访问 `Worker URL`， 应该可以自动被引导进入和本地开发环境相同的 OAuth 授权流程。
 5. Success ！！！
 
-## 待改善
-目前 `@cloudflare/workers-types` 使用的版本较低， 如果提升到 v4 则 VS Code 会在 ts文件中报错， 需要进行优化。
+## To Do List
+- [ ] Add deploy to Cloudflare 的图标
+- [x] 目前 `@cloudflare/workers-types` 使用的版本较低， 如果提升到 v4 则 VS Code 会在 ts文件中报错， 需要进行优化。
 
 ## Ideas to grow this project
 If you would like to use this setups as a starting point to develop interesting things; I recommend trying out one (or all!) of this improvements:
