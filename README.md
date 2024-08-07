@@ -67,12 +67,13 @@ sequenceDiagram
 ```
 
 
-1. 用户访问OAuth2 Client应用首页 `/` 路由，检查认证状态。   
-2. 用户访问 `/login` 链接，重定向到 Google OAuth2 登录页面。   
-3. 用户在 Google 登录并授权后，Google 返回授权码。
-4. 授权码通过 `/auth` 路由交换获取令牌，存储并Setup Cookie。   
-5. 用户再次访问 `/` 或 `/userinfo`，检查并处理认证状态。   
-6. 用户登出时访问 `/logout`，撤销令牌并清除 Cookie。   
+1. The user accesses the OAuth2 Client application homepage at the `/` route and checks the authentication status.
+2. The user clicks the `/login` link, which redirects to the Google OAuth2 login page.
+3. After the user logs in and authorizes with Google, Google returns an authorization code.
+4. The authorization code is exchanged for tokens via the `/auth` route, which stores the tokens and sets up the Cookie.
+5. The user visits `/` or `/userinfo` again, where the authentication status is checked and processed.
+6. When the user logs out by visiting `/logout`, the tokens are revoked, and the Cookie is cleared.
+
 
 **Related Reading**
  - [Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server)
