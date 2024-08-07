@@ -1,132 +1,159 @@
 # ( ◕◡◕)っ Cloudflare Workers Google OAuth
+本项目是一个利用 Cloudflare 提供的 Workers 无服务器架构（Serverless）实现的 **OAuth2 协议中的客户端（Client）应用**， OAuth2 中对应的授权服务器和资源服务器由 Google Cloud 进行提供。本项目fork [jazcarate/cloudflare-worker-google-oauth](https://github.com/jazcarate/cloudflare-worker-google-oauth) 并对项目文档细节进行了补充并Cloudflare Workers v3 版本的 CLI （Wrangler, C3）工具进行改进， 
 
-This project is a **client application in the OAuth2 protocol** implemented using Cloudflare's serverless architecture (Workers). The authorization server and resource server in OAuth2 are provided by Google Cloud. This project forks from [jazcarate/cloudflare-worker-google-oauth](https://github.com/jazcarate/cloudflare-worker-google-oauth), with improvements to the project documentation and updates for Cloudflare Workers v3 CLI tools (Wrangler, C3).
+[English](./README.md) · **简体中文**
 
-**English** · [简体中文](./README.zh-CN.md) 
-
-#### About Cloudflare Workers
-
-Cloudflare Workers is a serverless computing platform that allows developers to run JavaScript code on Cloudflare's globally distributed network, enabling fast, scalable, and high-performance applications and functionalities. You need to register a Cloudflare account to use Workers. The free plan supports 100,000 requests per day, with up to 10 ms of CPU time per request. According to Cloudflare's [2024 billing model](https://blog.cloudflare.com/workers-pricing-scale-to-zero/), I/O wait time is excluded, allowing most I/O-intensive web applications to run smoothly on the free plan.
-
+## About Cloudflare Workers
+Cloudflare Workers 是一种无服务器计算平台，允许开发者在全球分布的 Cloudflare 网络上运行 JavaScript 代码，从而实现快速、可扩展和高性能的应用和功能。需要注册一个 Cloudflare account 来使用 Workers, Workers 免费规格(Free Plan) 的 Workers 每日可支持 100,000 请求响应，每个请求响应消耗的的 CPU 时间可达10 ms。Cloudflare 【2024年公布的计费模型](https://blog.cloudflare.com/workers-pricing-scale-to-zero/)中排除了 I/O 等待的耗时， 使得多数I/O密集Web应用可以在免费规格上顺利的运行。
 > Cloudflare Workers provides a serverless execution environment that allows you to create new applications or augment existing ones without configuring or maintaining infrastructure.
 
 > Cloudflare Workers let you deploy serverless code instantly across the globe for exceptional performance, reliability, and scale.
 
-#### OAuth2
+## About OAuth2
+OAuth 2.0 是一种授权框架，允许第三方应用在资源所有者的许可下，获取访问资源服务器上的受保护资源的权限，而不需要暴露资源所有者的凭据。OAuth 2.0 被广泛应用于社交登录、API 访问控制等场景。
 
-OAuth 2.0 is an authorization framework that allows third-party applications to obtain limited access to protected resources on a resource server on behalf of the resource owner without exposing the resource owner's credentials. OAuth 2.0 is widely used in social login, API access control, and other scenarios.
+> The OAuth 2.0 authorization framework enables a third-partyapplication to obtain limited access to an HTTP service, either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service, or by allowing the third-party application to obtain access on its own behalf.
 
-> The OAuth 2.0 authorization framework enables a third-party application to obtain limited access to an HTTP service, either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service, or by allowing the third-party application to obtain access on its own behalf.
+**名词解释**
 
-**Terminology**
+1. **授权服务器（Authorization Server）**：
+   - 负责验证资源所有者的身份，并颁发访问令牌（Access Token）给客户端应用。
+     > 在本项目中由 Google Cloud 的相应API endpoints 来提供 OAuth2 业务流程中的授权服务。（待完善）
 
-1. **Authorization Server**:
-   - Responsible for verifying the identity of the resource owner and issuing access tokens to client applications.
-     > In this project, the authorization service is provided by Google Cloud's API endpoints.
+2. **资源服务器（Resource Server）**：
+   - 托管资源的服务器，使用访问令牌来决定是否允许客户端访问受保护资源。
+     > 在本项目中由 Google APIs 的相应API endpoints 来提供对应的资源访问服务。（待完善）
 
-2. **Resource Server**:
-   - Hosts the resources and uses access tokens to decide whether to allow client applications to access the protected resources.
-     > In this project, the resource access service is provided by Google APIs' endpoints.
+3. **客户端（Client）**：
+   - 请求访问受保护资源的第三方应用。它代表资源所有者操作，但并不代表资源所有者的身份。
+     > 本项目利用Workers
 
-3. **Client**:
-   - The third-party application requesting access to protected resources. It operates on behalf of the resource owner but does not act as the resource owner.
-     > This project utilizes Workers.
+4. **资源所有者（Resource Owner）**：
+   - 拥有受保护资源的实体，通常是最终用户。
 
-4. **Resource Owner**:
-   - The entity that owns the protected resources, usually the end-user.
+## OAuth2 Client Worker 设计思路
 
-<details>
-  <summary>Sequence Diagram of OAuth2 requests</summary>
-  
-  ![Sequence of requests](./docs/OAuth-worker.svg)
-  
-</details>
+### 请求时序
+```mermaid
+sequenceDiagram
+    User Browser->>Cloudflare Worker: GET /
+    Note left of Cloudflare Worker: The request is unauthenticated
+    Cloudflare Worker-->>User Browser: Redirect to Google Sign in
+    User Browser->>Google API: Ask for permission
+    Google API-->>User Browser: Prompt to sign in
+    User Browser->>Google API: Grant permissions
+    activate Google API
+    Note left of Google API: Google now\nhas a session\nfor the user
+    Google API-->>User Browser: Redirect back to Cloudflare Worker with a `code`
+    User Browser->>Cloudflare Worker: GET /auth with a `code`
+    Cloudflare Worker->>Google API: Exchange `code` for a `token`
+    Google API-->>Cloudflare Worker: Access Token and Refresh Token
+    activate Cloudflare Worker
+    Note left of Cloudflare Worker: An auth is stored in the KV with the token
+    Cloudflare Worker-->>User Browser: Set auth cookie and redirect to the original request
+    User Browser->>Cloudflare Worker: GET /
+    Note left of Cloudflare Worker: Now the client is authenticated
+    Cloudflare Worker->>Google API: Get user info
+    Google API-->>Cloudflare Worker: User Info
+    Cloudflare Worker-->>User Browser: Display user info
+    User Browser->>Cloudflare Worker: GET /logout
+    Cloudflare Worker->>Google API: Revoke token
+    deactivate Google API
+    Google API-->>Cloudflare Worker: OK
+    deactivate Cloudflare Worker
+    Cloudflare Worker-->>User Browser: Clear auth cookie and respond OK
+```
 
-<details>
-  <summary>Generated with <a href="https://sequencediagram.org/" target="_blank" rel="noopener noreferrer">sequencediagram.org</a></summary>
-  <pre><code>title Sequence of OAuth2 requests
 
-User Browser->Cloudflare Worker: GET /
-note left of Cloudflare Worker: The request is unauthenticated
-Cloudflare Worker-->User Browser: Redirect to Google Sign in
-User Browser->Google API: Ask for permission
-Google API-->User Browser: Prompt to sign in
-User Browser->Google API: Grant permissions
-activate Google API
-note left of Google API: Google now\nhas a session\nfor the user
-Google API-->User Browser: Go back to the Cloudflare Worker with a `token`
-User Browser->Cloudflare Worker: GET /auth with a `code`
-Cloudflare Worker->Google API: Exchange `code` for a `token`
-Google API-->Cloudflare Worker: a token
-activate Cloudflare Worker
-note left of Cloudflare Worker: An auth is stored in the KV with the code
-Cloudflare Worker-->User Browser: Go back to the original request with the auth cookie
-User Browser->Cloudflare Worker: GET /
-note left of Cloudflare Worker: Now the client is authenticated
-Cloudflare Worker->Google API: Get files
-Google API-->Cloudflare Worker: A list of files
-Cloudflare Worker-->User Browser: An HTML with a list of files
-expandable− logout
-User Browser->Cloudflare Worker: GET /logout
-Cloudflare Worker->Google API: Logout
-deactivate Google API
-Google API-->Cloudflare Worker: OK
-deactivate Cloudflare Worker
-Cloudflare Worker-->User Browser: OK
-end
-  </code></pre>
-</details>
+1. 用户访问OAuth2 Client应用首页 `/` 路由，检查认证状态。   
+2. 用户访问 `/login` 链接，重定向到 Google OAuth2 登录页面。   
+3. 用户在 Google 登录并授权后，Google 返回授权码。
+4. 授权码通过 `/auth` 路由交换获取令牌，存储并Setup Cookie。   
+5. 用户再次访问 `/` 或 `/userinfo`，检查并处理认证状态。   
+6. 用户登出时访问 `/logout`，撤销令牌并清除 Cookie。   
 
-**Further Reading**
+**相关阅读**
  - [Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server).
 
-- [RFC 6749: The OAuth 2.0 Authorization Framework](https://datatracker.ietf.org/doc/html/rfc6749) 
+- [RFC 6749: The OAuth 2.0 Authorization Framework ](https://datatracker.ietf.org/doc/html/rfc6749) 
 
 - [Using OAuth 2.0 to Access Google APIs](https://developers.google.com/identity/protocols/oauth2)
 
 - [Setting up OAuth 2.0](https://support.google.com/cloud/answer/6158849) on Google Cloud
 
-## Prerequisites
-### Node.js
-To avoid version conflicts, it is recommended to install the Node.js environment via Conda. This project uses the LTS version v20.12.0 from July 2024. If you haven't installed `conda` yet, you can download and install Miniconda or Anaconda from the following links:
+## 项目脚手架
+如前所述 Cloudflare Workers 在Deployment/运维/可扩展性上存在很大的优势， 但是如果直接使用其提供的 [Runtime APIs](https://developers.cloudflare.com/workers/runtime-apis/) 进行项目开发则存在以下风险
+
+
+**潜在风险和注意事项**
+
+1. **锁定效应**：
+   - **供应商锁定**：过于依赖 Cloudflare Workers 及其特有的 APIs 可能导致迁移到其他平台时成本较高。开发者需要评估这种依赖是否会对项目的长期发展造成限制。
+
+2. **学习成本**：
+   - **新技术学习**：Cloudflare Workers 的开发模式和工具链与传统服务器开发有所不同，开发人员需要时间学习和适应。对于团队中的新成员或外包开发人员，这可能会增加培训成本。
+
+
+
+### 开发框架 hono
+考虑到以上风险，我们寻找一个能够对 Workers API 进行有效封装和模块化， 能够适当缓解**供应商锁定**效应的开发框架， 并且拥有一个设计良好 API 来降低开发人员的**学习成本**。 
+Hono 是一个超快速、轻量级的 Web 框架，专为边缘计算环境设计，如 Cloudflare Workers、Deno、Bun 和 AWS Lambda。它提供高性能路由、灵活的中间件支持和简洁的 API，极大地提高了开发效率和代码质量。Hono 使用标准 Web API，具有跨平台兼容性，帮助开发者避免供应商锁定。
+而且 Cloudflare 的[官方SDK 项目](https://github.com/cloudflare/workers-sdk)模版中， 也采用了 [hono 作为项目的开发框架](https://github.com/cloudflare/workers-sdk/blob/2893c1abe3daefb67a41adbba66bc038e39f8243/templates/worker-d1-api/package.json#L9-L11)。
+
+
+更多详情可参考 [Hono 官方文档](https://hono.dev/docs/).
+
+
+
+## 开发环境准备 Prerequisites
+### nodejs
+为了避免版本冲突建议通过 conda 进行 nodejs 环境安装, 本项目使用 2024-07 月间的 LTS 版本 v20.12.0
+如果还没有安装 `conda`，可以从以下链接下载并安装 Miniconda 或 Anaconda：
    - [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
    - [Anaconda](https://www.anaconda.com/products/distribution)
 
-1. **Create and activate a new Conda environment** (optional but recommended to avoid impacting other environments):
+1. **创建并激活一个新的 Conda 环境**（可选，但推荐这样做，以避免影响其他环境）:
    ```bash
-   conda create -n node-lts
-   conda activate node-lts
+   conda create -n nodee-lts
+   conda activate nodee-lts
    ```     
-2. **Add Conda-Forge repository** (if not already added):
+
+2. **添加 Conda-Forge 仓库**（如果还没有添加过）:
    ```bash
    conda config --add channels conda-forge
    ```
 
-3. **Install the specified version of Node.js using Conda**:
-    `conda install -c conda-forge nodejs=20`
-4. **Verify the installation**:
-   After the installation is complete, you can verify if Node.js and npm were installed successfully and check their versions using the following commands:
+3. **使用 Conda 安装 Node.js 的 认定版本**:
+
+```bash
+conda install -c conda-forge nodejs=20
+```
+4. **验证安装**:
+   安装完成后，可以通过以下命令验证 Node.js 和 npm 是否安装成功，以及它们的版本：
    ```bash
    node -v
    npm -v
    ```
 
+
 ### wrangler
-`wrangler` is a command-line tool used for managing and deploying Cloudflare Workers. It can quickly initialize new projects, develop and debug locally, and deploy Workers to Cloudflare's edge network. `wrangler` uses the `wrangler.toml` file to manage configuration, supports the creation and management of Workers KV storage, and provides real-time log viewing. With `wrangler`, developers can efficiently develop, debug, and deploy code on Cloudflare, greatly simplifying the operation process.
+`wrangler` 是一个用于管理和Deployment Cloudflare Workers 的命令行工具。它能快速初始化新项目、本地开发和调试、Deployment Workers 到 Cloudflare 边缘网络。`wrangler` 使用 `wrangler.toml` 文件管理配置，支持 Workers KV 存储的创建和管理，并提供实时日志查看功能。通过 `wrangler`，开发者可以高效地在 Cloudflare 上开发、调试和Deployment代码，极大地简化了操作流程。
+
+
 
 <details>
 
-<summary> <b> wrangler installation and configuration </b> </summary>
+<summary> <b> wrangler 安装以及配置 </b> </summary>
 
-- To install wrangler, execute in the project directory
+- wrangler 安装，请在项目目录当中执行
 ```bash
 npm install wrangler --save-dev
 ```
-- Verify wrangler installation
+- 验证 wrangler 安装
 ```bash
 npx wrangler -v
 ```
-- Configuration file wrangler.toml
+- 配置文件 wrangler.toml
 ```
 name = "oauth-client"
 main = "src/index.ts"
@@ -135,37 +162,54 @@ compatibility_date = "2024-07-25"
 
 </details>
 
+
 ### Google Cloud
-- A Google Services account is required
+- 需要一个 Google Services account
   
-- A Google OAuth Client ID and Secret, from the [Credentials](https://console.cloud.google.com/apis/credentials) > + Create credentials > OAuth client ID > Application type: Web application
-  - Note: "Authorized redirect URIs"
-    - For local development, you can use `http://127.0.0.1:8787/auth`
-    - For production, use `[your cloudflare worker url]/auth`
-  - After completing the setup, record the generated `Client ID` and `Client secret`
+- A Google OAuth Client ID and Secret, from the [Credentials](https://console.cloud.google.com/apis/credentials) > + Create credentials > Oauh client ID. > Application: Web application
+  - 注意: "Authorized redirect URIs"
+    - 本地开发时可使用 `http://127.0.0.1:8787/auth`
+    - 生产环境时应使用 `[your cloudflare worker url]/auth` 
+  - 完成Setup后需要需要记录生成的 `Client ID` 和 `Client secret`
+
+## Implementation
+1. **Route**: `/` : Project Homepage
+   - User request reaches the Worker, checks the authentication Cookie.
+   - If not authenticated, displays the `/login` link.
+   - If authenticated, use the Token to call the Google Userinfo API.
+2. **Route**: `/login` : Login Page
+   - User clicks the `/login` link, redirects to Google's OAuth2 authorization URL, requesting with `access_type=offline` parameter.
+3. **Route**: `/auth` : Exchange Authorization Code for Tokens
+   - After receiving the authorization code, the Worker exchanges it with Google API for access and refresh tokens.
+   - 存储令牌信息并Setup认证 Cookie，然后显示登录成功， 等待10秒后重定向回 `/userinfo`。
+4. **Route**: `/userinfo` : User Info Page
+   - Checks the authentication Cookie, if there is a valid token, processes the user request, such as fetching user information.
+5. **Route**: `/logout` : Revoke Token and Clear Cookie
+   **Route**: `/logout`
+   - Revokes the token, deletes the token data in KV, and clears the authentication Cookie.
 
 ## Deployment
 ### Local Development Environment
-1. Create a project
-  You can use Cloudflare's interactive command-line tool C3 (create-cloudflare-cli) to create a project.
+1. Create Project
+  You can use Cloudflare's interactive command-line tool C3 (create-cloudflare-cli) to create the project.
     ```
     npm create cloudflare
     ```
-    During the interaction, select Worker built from a template hosted in a git repository, then use `https://github.com/crazynomad/cloudflare-worker-google-oauth`
-1. wrangler configuration
-  It is recommended to configure wrangler.toml, `name` is the name of the worker, which can be changed
+    During the interaction, choose Worker built from a template hosted in a git repository, then use `https://github.com/crazynomad/cloudflare-worker-google-oauth`
+2. wrangler Configuration
+  Configure wrangler.toml, `name` is the worker's name, can be changed.
     ```
     name = "oauth-client"
     main = "src/index.ts"
     compatibility_date = "2024-07-25"
     ```
-1. Environment variables
-Set the [OAuth Client ID and Client secret generated above](#google-cloud) using wrangler:
-   `npx wrangler secret put CLIENT_ID`
-   `npx wrangler secret put CLIENT_SECRET`
-
-1. Set up Cloudflare Cache (KV)
-  Create a `KV` namespace: `npx wrangler kv namespace create "authTokens"` and add the corresponding configuration returned to the `wrangler.toml` file, for example
+3. Environment Variables
+使用 wrangler Setup[上文生成 OAuth Client ID 和 Client secret](#google-cloud):
+    `npx wrangler secret put CLIENT_ID`
+    `npx wrangler secret put CLIENT_SECRET`
+    `npx wrangler secret put REDIRECT_URI`
+1. SetupCloudflare 缓存(KV)
+  Create `KV` namespace: `npx wrangler kv namespace create "authTokens"` and add the corresponding configuration to `wrangler.toml` file based on the returned value, for example
     ```
     [[kv_namespaces]]
     binding = "authTokens"
@@ -175,38 +219,40 @@ Set the [OAuth Client ID and Client secret generated above](#google-cloud) using
     LOCAL = true
     ```
 
-1. Local environment variables
-  Create a `.dev.vars` file and add
+5. Local Environment Variables
+  Create a `.dev.vars` file, and add the following
     ```
     LOCAL = true
     CLIENT_ID = "<Replace With your CLIENT ID>"
     CLIENT_SECRET = "<Replace With your CLIENT SECRET>"
+    REDIRECT_URI = "http://127.0.0.1:8787/auth"
     ```
     Learn more about environment variables
     - [Environment variables](https://developers.cloudflare.com/workers/configuration/environment-variables/)
     - [System environment variables](https://developers.cloudflare.com/workers/wrangler/system-environment-variables/)
-1. Start
+6. Start
   `npx wrangler dev`
   Then visit http://127.0.0.1:8787, you should be automatically guided into the OAuth authorization process.
-1. DONE!!!
+1. DONE ！！！
 
-### Production Deployment
-1. Use the `wrangler` tool to deploy to the production environment
+### 线上Deployment
+1. 利用 `wrangler` 工具Deployment至线上环境
    `npx wrangler deploy`
-2. Log in to the Cloudflare Dashboard, find your Worker under Workers & Pages, and copy its external access `Worker URL`
-3. Edit the previously generated OAuth 2.0 Client ID in Google Cloud, add an `Authorized redirect URI`, and fill in your [`Worker URL`/auth]
-4. Visit `Worker URL` in your browser, you should be automatically guided into the same OAuth authorization process as in the local development environment.
-5. Success!!!
+2. 登陆 Cloudflare Dashboard, 在 Workers & Pages 下面找到你的 Worker, 复制其外部访问的 `Worker URL` 
+3. 编辑之前在 Google Cloud 的 生成的 OAuth 2.0 Client ID, 追加一个 `Authorized redirect URI`, 填入你的 [`Worker URL`/auth]
+4. Visit `Worker URL` in the browser, you should be automatically guided into the same OAuth authorization process as the local development environment.
+5. Success ！！！
 
-## Improvements Needed
-Currently, the version of `@cloudflare/workers-types` used is relatively low. If upgraded to v4, VS Code will report errors in ts files, which need to be optimized.
+## To Do List
+- [ ] Add deploy to Cloudflare badge
+- [x] Currently, the version of `@cloudflare/workers-types` used is low. If upgraded to v4, VS Code will report errors in the ts file, optimization is needed.
 
 ## Ideas to grow this project
-If you would like to use this setup as a starting point to develop interesting things; I recommend trying out one (or all!) of these improvements:
+If you would like to use this setups as a starting point to develop interesting things; I recommend trying out one (or all!) of this improvements:
 
-- Create a middleware pattern to deal with authenticated and unauthenticated endpoints
-- Serve static content, either with Cloudflare Sites, or by reading local files in a Worker. A default path could be implemented to serve files in the `public/` folder.
-- Improve the rendered HTML with a template library, or create your own!
+- Create a middleware pattern to deaal with authenticated and unauthenticated endpoints
+- Serve static content, either with Cloudflare Sites, or reading local files in a Worker. A default path could be implemented to serve files in `public/` folder.
+- Improve the rendered HTML with a template library, or roll up your own!
 - Use another Google API from [the list](https://developers.google.com/workspace/products).
 
-   
+
