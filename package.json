@@ -24,7 +24,7 @@
     ]
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^2.2.2",
+    "@cloudflare/workers-types": "^4.20240729.0",
     "@types/jest": "^26.0.23",
     "@types/service-worker-mock": "^2.0.1",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
@@ -42,5 +42,9 @@
     "typescript": "^5.4.5",
     "webpack": "^5.38.1",
     "webpack-cli": "^4.7.0"
+  },
+  "dependencies": {    
+    "hono": "^4.5.3",
+    "nanoid": "^5.0.7"    
   }
 }
