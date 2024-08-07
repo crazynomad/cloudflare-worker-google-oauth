@@ -169,30 +169,20 @@ compatibility_date = "2024-07-25"
    - The user's request reaches the Worker, which checks the authentication cookie.
    - If not authenticated, it displays the `/login` link.
    - If authenticated, the token is used to call the Google Userinfo API.
+   https://github.com/crazynomad/cloudflare-worker-google-oauth/blob/5026fb742ccc4ee7383229da15586555eef2218e/src/index.ts#L227-L261
 2. **Route**: `/login` : Login Page
    - The user clicks the `/login` link, redirecting to Google's OAuth2 authorization URL with the `access_type=offline` parameter.
+   https://github.com/crazynomad/cloudflare-worker-google-oauth/blob/5026fb742ccc4ee7383229da15586555eef2218e/src/index.ts#L81-L127
 3. **Route**: `/auth` : Exchange Authorization Code for Tokens
    - After receiving the authorization code, the Worker exchanges it with Google API for access and refresh tokens.
    - Stores the token information and sets up the authentication cookie, then displays login success, waits 10 seconds, and redirects back to `/userinfo`.
+   https://github.com/crazynomad/cloudflare-worker-google-oauth/blob/5026fb742ccc4ee7383229da15586555eef2218e/src/index.ts#L134-L192
 4. **Route**: `/userinfo` : User Info Page
    - Checks the authentication cookie, and if there is a valid token, processes the user request, such as fetching user information.
+   https://github.com/crazynomad/cloudflare-worker-google-oauth/blob/5026fb742ccc4ee7383229da15586555eef2218e/src/index.ts#L198-L221
 5. **Route**: `/logout` : Revoke Token and Clear Cookie
    - Revokes the token, deletes the token data in KV, and clears the authentication cookie.
-
-1. **Route**: `/` : Project Homepage
-   - User request reaches the Worker, checks the authentication Cookie.
-   - If not authenticated, displays the `/login` link.
-   - If authenticated, use the Token to call the Google Userinfo API.
-2. **Route**: `/login` : Login Page
-   - User clicks the `/login` link, redirects to Google's OAuth2 authorization URL, requesting with `access_type=offline` parameter.
-3. **Route**: `/auth` : Exchange Authorization Code for Tokens
-   - After receiving the authorization code, the Worker exchanges it with Google API for access and refresh tokens.
-   - 存储令牌信息并Setup认证 Cookie，然后显示登录成功， 等待10秒后重定向回 `/userinfo`。
-4. **Route**: `/userinfo` : User Info Page
-   - Checks the authentication Cookie, if there is a valid token, processes the user request, such as fetching user information.
-5. **Route**: `/logout` : Revoke Token and Clear Cookie
-   **Route**: `/logout`
-   - Revokes the token, deletes the token data in KV, and clears the authentication Cookie.
+   https://github.com/crazynomad/cloudflare-worker-google-oauth/blob/5026fb742ccc4ee7383229da15586555eef2218e/src/index.ts#L267-L279
 
 ## Deployment
 ### Local Development Environment
