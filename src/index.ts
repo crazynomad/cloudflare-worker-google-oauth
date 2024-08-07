@@ -2,6 +2,9 @@ import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 
+/**
+ * Represents the environment configuration for the application.
+ */
 interface Env {
   CLIENT_ID: string;
   CLIENT_SECRET: string;
@@ -9,6 +12,9 @@ interface Env {
   authTokens: KVNamespace;
 }
 
+/**
+ * Represents the data structure for a token.
+ */
 interface TokenData {
   access_token: string;
   expires_in: number;
@@ -19,6 +25,9 @@ interface TokenData {
   error?: string;
 }
 
+/**
+ * Represents user information.
+ */
 interface UserInfo {
   sub: string;
   name?: string;
@@ -32,6 +41,12 @@ interface UserInfo {
 
 const app = new Hono<{ Bindings: Env }>();
 
+/**
+ * Fetches user information using the provided access token.
+ * @param accessToken - The access token used for authentication.
+ * @returns A Promise that resolves to the user information.
+ * @throws An error if the user info fetch fails.
+ */
 const fetchUserInfo = async (accessToken: string): Promise<UserInfo> => {
   const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
@@ -44,6 +59,11 @@ const fetchUserInfo = async (accessToken: string): Promise<UserInfo> => {
   return await response.json();
 };
 
+/**
+ * Revokes the specified token by making a request to the Google OAuth2 revoke endpoint.
+ * @param token - The token to be revoked.
+ * @returns A Promise that resolves when the token is successfully revoked.
+ */
 const revokeToken = async (token: string) => {
   await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
     method: 'POST',
@@ -53,6 +73,11 @@ const revokeToken = async (token: string) => {
   });
 };
 
+/**
+ * Handles the /login route.
+ * If the user is already authenticated, refresh the token if necessary.
+ * Otherwise, redirect the user to the Google OAuth2 login page.
+ */
 app.get('/login', async (c) => {
   const storedState = getCookie(c, 'oauth_state');
   
@@ -61,6 +86,9 @@ app.get('/login', async (c) => {
     if (tokenDataJson) {
       const tokenData: TokenData = JSON.parse(tokenDataJson);
       if (tokenData.refresh_token) {
+        /**
+         * Represents the response from the Google OAuth token refresh request.
+         */
         const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: {
@@ -98,6 +126,11 @@ app.get('/login', async (c) => {
   return c.redirect(authUrl);
 });
 
+/**
+ * Handles the /auth route.
+ * Exchanges the authorization code for an access token and refresh token.
+ * Stores the tokens in KV and sets a cookie.
+ */
 app.get('/auth', async (c) => {
   const query = c.req.query();
   const code = decodeURIComponent(query.code as string);
@@ -158,6 +191,10 @@ app.get('/auth', async (c) => {
   `);
 });
 
+/**
+ * Handles the /userinfo route.
+ * Retrieves and returns user information if the user is authenticated.
+ */
 app.get('/userinfo', async (c) => {
   const storedState = getCookie(c, 'oauth_state');
   if (!storedState) {
@@ -183,6 +220,10 @@ app.get('/userinfo', async (c) => {
   }
 });
 
+/**
+ * Handles the homepage route.
+ * Checks the authentication status and either displays user info or a login link.
+ */
 app.get('/', async (c) => {
   const storedState = getCookie(c, 'oauth_state');
   
@@ -219,6 +260,10 @@ app.get('/', async (c) => {
   `);
 });
 
+/**
+ * Handles the /logout route.
+ * Revokes the token, deletes the token data from KV, and clears the authentication cookie.
+ */
 app.get('/logout', async (c) => {
   const storedState = getCookie(c, 'oauth_state');
   if (storedState) {
