@@ -1,6 +1,6 @@
 # 开发环境准备
 
-### nodejs
+## nodejs
 为了避免版本冲突建议通过 conda 进行 nodejs 环境安装, 本项目使用 2024-07 月间的 LTS 版本 v20.12.0
 如果还没有安装 `conda`，可以从以下链接下载并安装 Miniconda 或 Anaconda：
    - [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
@@ -29,7 +29,7 @@
    npm -v
    ```
 
-### wrangler
+## wrangler
 `wrangler` 是一个用于管理和部署 Cloudflare Workers 的命令行工具。它能快速初始化新项目、本地开发和调试、部署 Workers 到 Cloudflare 边缘网络。`wrangler` 使用 `wrangler.toml` 文件管理配置，支持 Workers KV 存储的创建和管理，并提供实时日志查看功能。通过 `wrangler`，开发者可以高效地在 Cloudflare 上开发、调试和部署代码，极大地简化了操作流程。
 
 <details>
@@ -51,7 +51,7 @@ compatibility_date = "2024-07-25"
 ```
 </details>
 
-### Google Cloud
+## Google Cloud
 - 需要一个 Google Services account
   
 - A Google OAuth Client ID and Secret, from the [Credentials](https://console.cloud.google.com/apis/credentials) > + Create credentials > Oauh client ID. > Application: Web application

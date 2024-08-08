@@ -1,6 +1,6 @@
 # OAuth2 Client Worker 设计思路
 
-### 请求时序
+## 请求时序
 ```mermaid
 sequenceDiagram
     User Browser->>Cloudflare Worker: GET /
@@ -31,6 +31,7 @@ sequenceDiagram
     Cloudflare Worker-->>User Browser: Clear auth cookie and respond OK
 ```
 
+## 路由说明
 1. 用户访问OAuth2 Client应用首页 `/` 路由，检查认证状态。   
 2. 用户访问 `/login` 链接，重定向到 Google OAuth2 登录页面。   
 3. 用户在 Google 登录并授权后，Google 返回授权码。

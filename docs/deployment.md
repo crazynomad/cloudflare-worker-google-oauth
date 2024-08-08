@@ -1,5 +1,5 @@
-## 部署
-### 本地开发环境
+# 部署
+## 本地开发环境
 1. 创建项目
   可以使用 Cloudflare 提供的交互命令行工具 C3 (create-cloudflare-cli) 进行项目创建.
     ```
@@ -45,7 +45,7 @@
   然后访问 http://127.0.0.1:8787 ， 应该可以自动被引导进入 OAuth 授权流程。
 1. DONE ！！！
 
-### 线上部署
+## 线上部署
 1. 利用 `wrangler` 工具部署至线上环境
    `npx wrangler deploy`
 2. 登陆 Cloudflare Dashboard, 在 Workers & Pages 下面找到你的 Worker, 复制其外部访问的 `Worker URL` 
