@@ -73,6 +73,7 @@ const revokeToken = async (token: string) => {
   });
 };
 
+//#region login
 /**
  * Handles the /login route.
  * If the user is already authenticated, refresh the token if necessary.
@@ -125,7 +126,9 @@ app.get('/login', async (c) => {
   
   return c.redirect(authUrl);
 });
+//#endregion login
 
+//#region auth
 /**
  * Handles the /auth route.
  * Exchanges the authorization code for an access token and refresh token.
@@ -190,7 +193,9 @@ app.get('/auth', async (c) => {
     </html>
   `);
 });
+//#endregion auth
 
+//#region userinfo
 /**
  * Handles the /userinfo route.
  * Retrieves and returns user information if the user is authenticated.
@@ -219,7 +224,9 @@ app.get('/userinfo', async (c) => {
     return c.text('Failed to fetch user info', 500);
   }
 });
+//#endregion userinfo
 
+//#region homepage
 /**
  * Handles the homepage route.
  * Checks the authentication status and either displays user info or a login link.
@@ -259,7 +266,9 @@ app.get('/', async (c) => {
     </html>
   `);
 });
+//#endregion homepage
 
+//#region logout
 /**
  * Handles the /logout route.
  * Revokes the token, deletes the token data from KV, and clears the authentication cookie.
@@ -277,6 +286,7 @@ app.get('/logout', async (c) => {
   deleteCookie(c, 'oauth_state', { path: '/', secure: true, sameSite: 'Lax' });
   return c.redirect('/');
 });
+//#endregion logout
 
 export default {
   fetch: app.fetch,

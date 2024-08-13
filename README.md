@@ -3,6 +3,13 @@ This project is a **client application in the OAuth2 protocol** implemented usin
 
 **English** · [简体中文](./README.zh-CN.md)
 
+<p align="center">    
+   <a href="https://x.com/BurnWang">
+      <img src="https://img.shields.io/twitter/follow/BurnWang" alt="X conversation" />
+   </a>
+  
+</p>
+
 ## About Cloudflare Workers
 Cloudflare Workers is a serverless computing platform that allows developers to run JavaScript code on Cloudflare's globally distributed network, enabling fast, scalable, and high-performance applications and functionalities. A Cloudflare account is required to use Workers. The Workers Free Plan supports up to 100,000 request responses per day, with each request response consuming up to 10 ms of CPU time. Cloudflare's [2024 billing model](https://blog.cloudflare.com/workers-pricing-scale-to-zero/) excludes I/O wait time, allowing most I/O-intensive web applications to run smoothly on the free plan.
 
