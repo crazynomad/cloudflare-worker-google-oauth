@@ -7,12 +7,11 @@
 <<< ../src/index.ts#homepage
       
 1. **路由**：`/login` ：登录页 
-   - 用户点击 `/login` 链接，重定向到 Google 的 OAuth2 授权 URL，请求包含 `access_type=offline` 参数。
-   https://github.com/crazynomad/cloudflare-worker-google-oauth/blob/5026fb742ccc4ee7383229da15586555eef2218e/src/index.ts#L81-L127   
+   - 用户点击 `/login` 链接，重定向到 Google 的 OAuth2 授权 URL，请求包含 `access_type=offline` 参数。   
 
 <<< ../src/index.ts#login
 
-3. **路由**：`/auth`：授权码交换令牌   
+1. **路由**：`/auth`：授权码交换令牌   
    - Worker 接收到授权码后，与 Google API 交换获取访问令牌和刷新令牌。
    - 存储令牌信息并设置认证 Cookie，然后显示登录成功， 等待10秒后重定向回 `/userinfo`。
 

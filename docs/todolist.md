@@ -1,6 +1,6 @@
 # To Do List
-
 - [ ] workers 作为中间件的尝试
+- [ ] Error Handlering
 - [ ] Add deploy to Cloudflare 的图标
 - [ ] Markdown 文件拆分/合并python 脚本
 - [ ] Markdown 文件的自动语言转换
