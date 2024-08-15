@@ -1,4 +1,4 @@
-# ( ◕◡◕)っ Cloudflare Workers Google OAuth
+# Cloudflare Workers Google OAuth
 
 本项目是一个利用 Cloudflare 提供的 Workers 无服务器架构（Serverless）实现的 **OAuth2 协议中的客户端（Client）应用**， OAuth2 中对应的授权服务器和资源服务器由 Google Cloud 进行提供。本项目fork [jazcarate/cloudflare-worker-google-oauth](https://github.com/jazcarate/cloudflare-worker-google-oauth) 并对项目文档细节进行了补充并Cloudflare Workers v3 版本的 CLI （Wrangler, C3）工具进行改进，
 
@@ -23,7 +23,8 @@ Cloudflare Workers 是一种无服务器计算平台，允许开发者在全球�
   - 参与播客的CF 工程师重点强调了公司的工程文化和内部的透明度， 从这些细节让我开始理解作为一个后来者， 是如何实现`弯道超车`的。
   - 尤其是介绍了下为什么Cloudflare能够实现免费， 以及背后从技术原理上的解释。（当然这个和国外 IDC 流量成本较低的显示也是高度相关的，有关带宽价格故事， 可[听听这期](https://www.xiaoyuzhoufm.com/episode/65ba7071e4c892c9905841fb)）
   - 一窥业界标杆的 Cloudflare 事故报告：[Cloudflare incident on October 30, 2023](https://blog.cloudflare.com/cloudflare-incident-on-october-30-2023) 
-- [How can CloudFlare offer a free CDN with unlimited bandwidth?](https://webmasters.stackexchange.com/questions/88659/how-can-cloudflare-offer-a-free-cdn-with-unlimited-bandwidth)
+- [How can CloudFlare offer a free CDN with unlimited bandwidth?](https://webmasters.stackexchange.com/questions/88659/how-can-cloudflare-offer-a-free-cdn-with-unlimited-bandwidth)  By Matthew Prince Co-founder & CEO, CloudFlare
+  
 - [为什么 Cloudflare 提供免费的服务？](https://www.kawabangga.com/posts/4361)
 
 #### 用钱投票
