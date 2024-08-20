@@ -4,7 +4,11 @@ import { withMermaid } from "vitepress-plugin-mermaid";
 export default withMermaid({
   title: 'Cloudflare Workers Google OAuth',
   description: "Step by Step guide to implement Google OAuth in Cloudflare Workers",
-  themeConfig: {
+  sitemap: {
+    hostname: 'https://tech.starteam.work',
+    lastmodDateOnly: true
+  },
+  themeConfig: {    
     nav: [
       { text: 'Get Started', link: '/introduction' },
       { text: 'Github', link: 'https://github.com/crazynomad/cloudflare-worker-google-oauth' }
